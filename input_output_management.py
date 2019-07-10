@@ -1,33 +1,8 @@
 import os
 import time
-import signal
 
 IN_EXTENSION = '.in'
 OUT_EXTENSION = '.ans'
-
-class TimeoutException(Exception):
-    pass
-
-def deadline(timeout, *args):
-    """is a the decotator name with the timeout parameter in second"""
-    def decorate(f):
-        """ the decorator creation """
-        def handler(signum, frame):
-            """ the handler for the timeout """
-            raise TimeoutException() #when the signal have been handle raise the exception
-
-        def new_f(*args):
-            """ the initiation of the handler,
-            the lauch of the function and the end of it"""
-            signal.signal(signal.SIGALRM, handler) #link the SIGALRM signal to the handler
-            signal.alarm(timeout) #create an alarm of timeout second
-            res = f(*args) #lauch the decorate function with this parameter
-            signal.alarm(0) #reinitiate the alarm
-            return res #return the return value of the fonction
-
-        new_f.__name__ = f.__name__
-        return new_f
-    return decorate
 
 
 def get_all_samples_names(path):
@@ -72,7 +47,6 @@ def load_all_samples(path):
         )
 
 
-@deadline(20)
 def run_function(function, input):
     return function(input)
 
@@ -86,34 +60,26 @@ def run_test(samples_path, function):
         True: 'OK',
         False: 'KO',
         'error': 'ERR',
-        'timeout': 'T-OUT'
     }
-    print('status  | sample\t| duration')
+    print('status  | duration  | sample\t')
+
+    output_str = '%s \t\t| %.2fs \t| %s '
 
     for sample_name, sample in load_all_samples(samples_path):
         input, output = sample
-        output_str = '%s\t| %s \t| %.2fs '
         start = time.time()
-
         try:
             my_answer = run_function(function, input)
             success = output == my_answer
             success_str = str_mapping[success]
-
             print(output_str % (
-                    success_str,
-                    sample_name,
-                    time.time() - start,
-            ))
-        except TimeoutException:
-            print(output_str % (
-                   str_mapping['timeout'],
-                    sample_name,
-                    time.time() - start,
+                success_str,
+                time.time() - start,
+                sample_name,
             ))
         except:
             print(output_str % (
-                   str_mapping['error'],
-                   sample_name,
-                   time.time() - start,
+                str_mapping['error'],
+                time.time() - start,
+                sample_name,
             ))
